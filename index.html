@@ -1,12 +1,107 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Couple Quest Online</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>body{margin:0;background:#080810;color:#eee;font-family:system-ui,sans-serif}main{max-width:620px;margin:auto;padding:24px}section{background:#11111d;border:1px solid #29293d;border-radius:22px;padding:22px;margin:14px 0;box-shadow:0 10px 40px #0008}h1{font-size:34px}.muted{color:#999}input,button{width:100%;box-sizing:border-box;padding:14px;margin:7px 0;border-radius:14px;border:1px solid #333;background:#171725;color:#fff;font-size:16px}button{background:#8b5cf6;border:0;font-weight:700}button.secondary{background:#252538}.choices button{background:#171725;text-align:left}.choices button:hover{border-color:#8b5cf6}.hidden{display:none}.code{font-size:32px;letter-spacing:8px;text-align:center;font-weight:900}.answers{display:grid;gap:10px}.answer{padding:16px;border-radius:15px;background:#191929}.same{border:1px solid #e879f9}.tag{font-size:12px;color:#aaa}.pill{display:inline-block;background:#24243a;padding:7px 10px;border-radius:999px;margin:3px}</style></head><body><main>
-<section id="home"><h1>🌌 Couple Quest</h1><p class="muted">A private two-player midnight adventure for you & babe.</p><input id="name" placeholder="Your name"><button onclick="createRoom()">💞 Create a Room</button><hr><input id="room" placeholder="Room code"><button class="secondary" onclick="joinRoom()">🔑 Join Room</button><p id="status" class="muted"></p></section>
-<section id="lobby" class="hidden"><h2>Waiting for your person ❤️</h2><div class="code" id="code"></div><p class="muted">Send this code to your babe. When she joins, the quest starts.</p><p id="players"></p></section>
-<section id="game" class="hidden"><div><span class="pill" id="chapter"></span><span class="pill" id="progress"></span></div><h2 id="q"></h2><div class="choices" id="choices"></div><p id="wait" class="muted"></p></section>
-<section id="reveal" class="hidden"><h2>😂 REVEAL!</h2><div class="answers" id="answers"></div><button onclick="nextQuestion()">Next question ➜</button></section>
-</main><script>
-const SUPABASE_URL='PASTE_YOUR_SUPABASE_URL_HERE',SUPABASE_KEY='PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY_HERE';
-const ready=!SUPABASE_URL.startsWith('PASTE_');let sb=ready?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
-const qs=[
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Couple Quest Online ❤️</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#080810;color:#eee;font-family:system-ui,sans-serif;min-height:100vh}
+main{max-width:620px;margin:auto;padding:24px}
+section{background:#11111d;border:1px solid #29293d;border-radius:22px;padding:22px;margin:14px 0;box-shadow:0 10px 40px #0008}
+h1{font-size:34px;margin-top:5px}
+h2{line-height:1.4}
+p{line-height:1.6}
+.muted{color:#999}
+input,button{width:100%;padding:14px;margin:7px 0;border-radius:14px;border:1px solid #333;background:#171725;color:#fff;font-size:16px}
+button{background:#8b5cf6;border:0;font-weight:700;cursor:pointer}
+button:disabled{cursor:default;opacity:.6}
+button.secondary{background:#252538}
+.choices button{background:#171725;text-align:left;border:1px solid #333;transition:.2s}
+.choices button:hover{border-color:#8b5cf6}
+.hidden{display:none!important}
+.code{font-size:32px;letter-spacing:8px;text-align:center;font-weight:900;overflow-wrap:anywhere}
+.answers{display:grid;gap:10px}
+.answer{padding:16px;border-radius:15px;background:#191929;line-height:1.6}
+.same{border:1px solid #e879f9}
+.tag{font-size:12px;color:#aaa;margin-bottom:6px}
+.pill{display:inline-block;background:#24243a;padding:7px 10px;border-radius:999px;margin:3px;font-size:13px}
+hr{border:0;border-top:1px solid #29293d;margin:22px 0}
+.small{font-size:13px;color:#999}
+</style>
+</head>
+
+<body>
+<main>
+
+<section id="home">
+<h1>🌌 Couple Quest</h1>
+<p class="muted">A private two-player midnight adventure for you &amp; babe. ❤️</p>
+
+<input id="name" maxlength="24" placeholder="Your name" autocomplete="nickname">
+<button onclick="createRoom()">💞 Create a Room</button>
+
+<hr>
+
+<input id="room" maxlength="6" placeholder="Room code" autocomplete="off">
+<button class="secondary" onclick="joinRoom()">🔑 Join Room</button>
+
+<p id="status" class="muted" role="status"></p>
+<p class="small">Both players need an internet connection. Share your room code privately.</p>
+</section>
+
+<section id="lobby" class="hidden">
+<h2>🌙 Waiting for your person ❤️</h2>
+<p class="muted">Your room code is:</p>
+<div class="code" id="code"></div>
+<button class="secondary" onclick="copyRoomCode()">📋 Copy Room Code</button>
+<p class="muted">Send this code to your babe so they can join.</p>
+<p id="players">⏳ Waiting for your person...</p>
+<p id="lobbyStatus" class="muted"></p>
+</section>
+
+<section id="game" class="hidden">
+<div>
+<span class="pill" id="chapter"></span>
+<span class="pill" id="progress"></span>
+</div>
+
+<h2 id="q"></h2>
+<div class="choices" id="choices"></div>
+<p id="wait" class="muted" role="status"></p>
+</section>
+
+<section id="reveal" class="hidden">
+<h2>😂 REVEAL!</h2>
+<div class="answers" id="answers"></div>
+<p id="nextStatus" class="muted"></p>
+<button id="nextBtn" onclick="nextQuestion()">Next question ➜</button>
+</section>
+
+</main>
+
+<script>
+'use strict';
+
+/* SUPABASE CONFIGURATION */
+const SUPABASE_URL = 'https://avvrihqqdwifbefrhxps.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_3ROEpokSsZElLVtAbxSXAw_i8G8BG6I';
+
+const ready =
+  typeof window.supabase !== 'undefined' &&
+  SUPABASE_URL.startsWith('https://') &&
+  SUPABASE_KEY.startsWith('sb_publishable_');
+
+const sb = ready
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
+
+/* COUPLE QUEST QUESTIONS */
+const qs = [
 ['🌱 Getting to Know Me','What was your first impression of me?',['😍 “Cute… I might like them.”','😂 “This person is trouble.”','🫣 “Why am I shy already?”','🤨 “Let me observe first.”']],
 ['🌱 Getting to Know Me','What makes me smile the fastest?',['💬 A sweet message from you','😂 Your funniest nonsense','🫂 A surprise cuddle','🥹 You remembering little things']],
 ['🌱 Getting to Know Me','If we had one free evening together, what would I choose?',['🌃 A late-night drive','🍔 Food and deep talks','🎬 A movie under blankets','🚶 A random adventure']],
@@ -31,15 +126,333 @@ const qs=[
 ['🌌 Our Little Universe','If our relationship had a soundtrack, what would it feel like?',['🎶 Soft and romantic','🔥 Flirty and energetic','🌧️ Emotional and dreamy','😂 Chaotic but happy']],
 ['🌌 Our Little Universe','What should our final Couple Quest reward be?',['💌 A secret love letter','😂 A ridiculous couple challenge','🌟 A future date promise','🫶 A message from both hearts']]
 ];
-let me='',roomId='',channel=null,qi=0,myChoice=null,otherChoice=null,otherName='Babe';
-function msg(x){document.getElementById('status').textContent=x}
-function makeCode(){return Math.random().toString(36).slice(2,8).toUpperCase()}
-async function createRoom(){me=document.getElementById('name').value.trim()||'You';if(!ready)return msg('⚙️ Add your Supabase URL + publishable key in the code first.');roomId=makeCode(); await enterRoom(true)}
-async function joinRoom(){me=document.getElementById('name').value.trim()||'Babe';roomId=document.getElementById('room').value.trim().toUpperCase();if(!roomId)return msg('Enter the room code 😭');if(!ready)return msg('⚙️ Add your Supabase URL + publishable key in the code first.');await enterRoom(false)}
-async function enterRoom(host){document.getElementById('home').classList.add('hidden');document.getElementById('lobby').classList.remove('hidden');document.getElementById('code').textContent=roomId;channel=sb.channel('game:'+roomId);channel.on('broadcast',{event:'player'},({payload})=>{if(payload.name!==me){otherName=payload.name;document.getElementById('players').textContent='❤️ '+otherName+' is here!';if(host)startQuestion();}}).on('broadcast',{event:'choice'},({payload})=>{if(payload.name!==me){otherChoice=payload.choice;document.getElementById('wait').textContent='❤️ '+otherName+' has answered!';if(myChoice!==null)reveal();}}).on('broadcast',{event:'next'},({payload})=>{if(payload.name!==me){qi=payload.qi;myChoice=null;otherChoice=null;showQuestion();}}).subscribe(async s=>{if(s==='SUBSCRIBED'){await channel.send({type:'broadcast',event:'player',payload:{name:me}});if(!host)document.getElementById('players').textContent='⏳ Waiting for the host to start…';}})}
-function startQuestion(){qi=0;showQuestion()}
-function showQuestion(){document.getElementById('lobby').classList.add('hidden');document.getElementById('reveal').classList.add('hidden');document.getElementById('game').classList.remove('hidden');let x=qs[qi];document.getElementById('chapter').textContent=x[0];document.getElementById('progress').textContent=(qi+1)+' / '+qs.length;document.getElementById('q').textContent=x[1];document.getElementById('wait').textContent='';document.getElementById('choices').innerHTML=x[2].map((a,i)=>`<button onclick="choose(${i})">${a}</button>`).join('')}
-async function choose(i){if(myChoice!==null)return;myChoice=i;document.querySelectorAll('#choices button').forEach((b,j)=>{b.disabled=true;b.style.opacity=j===i?'1':'.45'});await channel.send({type:'broadcast',event:'choice',payload:{name:me,choice:i}});if(otherChoice===null)document.getElementById('wait').textContent='⏳ Waiting for your person…';else reveal()}
-function reveal(){document.getElementById('game').classList.add('hidden');document.getElementById('reveal').classList.remove('hidden');let x=qs[qi],same=myChoice===otherChoice;document.getElementById('answers').innerHTML=`<div class="answer ${same?'same':''}"><div class="tag">YOU ${same?'💞 SAME ANSWER!':''}</div>${x[2][myChoice]}</div><div class="answer ${same?'same':''}"><div class="tag">${otherName.toUpperCase()} ${same?'💞 SAME ANSWER!':''}</div>${x[2][otherChoice]}</div>${same?'<p>😂😂 You two actually think alike!</p>':'<p>😭 Different answers! Now argue about it lovingly.</p>'}`}
-async function nextQuestion(){if(qi>=qs.length-1){document.getElementById('reveal').innerHTML='<h2>🌌 Quest Complete!</h2><p>You survived the questions, chaos, confessions and future planning.</p><p>❤️ Two people. One little universe.</p>';return}qi++;myChoice=null;otherChoice=null;await channel.send({type:'broadcast',event:'next',payload:{name:me,qi}});showQuestion()}
-</script></body></html>
+
+/* GAME STATE */
+let me = '';
+let roomId = '';
+let channel = null;
+let isHost = false;
+let started = false;
+let qi = 0;
+let myChoice = null;
+let otherChoice = null;
+let otherName = 'Babe';
+let locked = false;
+let roomStartedAt = 0;
+
+function el(id) {
+  return document.getElementById(id);
+}
+
+function msg(message) {
+  el('status').textContent = message;
+}
+
+function makeCode() {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
+function showOnly(id) {
+  ['home', 'lobby', 'game', 'reveal'].forEach(section => {
+    el(section).classList.toggle('hidden', section !== id);
+  });
+}
+
+function validSetup() {
+  if (!ready) {
+    msg('⚙️ Supabase did not load. Check your internet connection and configuration.');
+    return false;
+  }
+  return true;
+}
+
+async function createRoom() {
+  if (channel) {
+    msg('You are already in a room. Refresh the page to start again.');
+    return;
+  }
+  if (!validSetup()) return;
+
+  me = el('name').value.trim().slice(0, 24) || 'You';
+  roomId = makeCode();
+  isHost = true;
+  roomStartedAt = Date.now();
+
+  await enterRoom();
+}
+
+async function joinRoom() {
+  if (channel) {
+    msg('You are already in a room. Refresh the page to start again.');
+    return;
+  }
+  if (!validSetup()) return;
+
+  me = el('name').value.trim().slice(0, 24) || 'Babe';
+  roomId = el('room').value.trim().toUpperCase();
+
+  if (!/^[A-Z0-9]{6}$/.test(roomId)) {
+    msg('Enter the six-character room code your person shared ❤️');
+    return;
+  }
+
+  isHost = false;
+  roomStartedAt = Date.now();
+
+  await enterRoom();
+}
+
+async function sendEvent(event, payload) {
+  if (!channel) return;
+  const result = await channel.send({
+    type: 'broadcast',
+    event,
+    payload
+  });
+
+  if (result !== 'ok') {
+    console.warn('Supabase broadcast status:', result);
+  }
+}
+
+async function enterRoom() {
+  showOnly('lobby');
+  el('code').textContent = roomId;
+  el('players').textContent = isHost
+    ? '⏳ Waiting for your person to join...'
+    : '🔎 Connecting to the room...';
+  el('lobbyStatus').textContent = '';
+
+  channel = sb.channel('game:' + roomId, {
+    config: {
+      broadcast: { self: false, ack: true }
+    }
+  });
+
+  channel
+    .on('broadcast', { event: 'player' }, async ({ payload }) => {
+      if (isHost && payload.name && !started) {
+        otherName = String(payload.name).slice(0, 24);
+        el('players').textContent = '❤️ ' + otherName + ' is here!';
+
+        started = true;
+        await sendEvent('start', {
+          host: me,
+          guest: otherName,
+          time: Date.now()
+        });
+
+        startQuestion();
+      }
+    })
+    .on('broadcast', { event: 'start' }, ({ payload }) => {
+      if (!isHost && !started) {
+        started = true;
+        otherName = String(payload.host || 'Your person').slice(0, 24);
+        el('players').textContent = '💞 Connected! Let the quest begin.';
+        startQuestion();
+      }
+    })
+    .on('broadcast', { event: 'choice' }, ({ payload }) => {
+      if (payload.name === me) return;
+      if (payload.qi !== qi || !Number.isInteger(payload.choice)) return;
+      if (payload.choice < 0 || payload.choice > 3) return;
+
+      otherName = String(payload.name || otherName).slice(0, 24);
+      otherChoice = payload.choice;
+
+      if (myChoice !== null) {
+        reveal();
+      } else {
+        el('wait').textContent = '❤️ ' + otherName + ' has answered! Your turn.';
+      }
+    })
+    .on('broadcast', { event: 'next' }, ({ payload }) => {
+      if (isHost) return;
+      if (!Number.isInteger(payload.qi)) return;
+      if (payload.qi < 0 || payload.qi >= qs.length) return;
+
+      qi = payload.qi;
+      myChoice = null;
+      otherChoice = null;
+      locked = false;
+      showQuestion();
+    })
+    .on('broadcast', { event: 'finish' }, () => {
+      if (!isHost) finishQuest();
+    })
+    .subscribe(async status => {
+      if (status === 'SUBSCRIBED') {
+        el('lobbyStatus').textContent = '✅ Connected to Supabase.';
+
+        if (isHost) {
+          el('players').textContent = '⏳ Waiting for your person to join...';
+        } else {
+          await sendEvent('player', { name: me });
+          el('players').textContent = '📡 Looking for the host...';
+        }
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        el('lobbyStatus').textContent =
+          '⚠️ Could not connect. Check Supabase Realtime settings and try refreshing.';
+      } else if (status === 'CLOSED') {
+        el('lobbyStatus').textContent = 'The room connection has closed.';
+      }
+    });
+}
+
+async function copyRoomCode() {
+  try {
+    await navigator.clipboard.writeText(roomId);
+    el('lobbyStatus').textContent = '✅ Room code copied!';
+  } catch {
+    el('lobbyStatus').textContent = 'Your room code is ' + roomId + '. Copy it manually.';
+  }
+}
+
+function startQuestion() {
+  qi = 0;
+  myChoice = null;
+  otherChoice = null;
+  locked = false;
+  showQuestion();
+}
+
+function showQuestion() {
+  if (qi >= qs.length) {
+    finishQuest();
+    return;
+  }
+
+  showOnly('game');
+
+  const question = qs[qi];
+  el('chapter').textContent = question[0];
+  el('progress').textContent = (qi + 1) + ' / ' + qs.length;
+  el('q').textContent = question[1];
+  el('wait').textContent = '';
+  el('choices').replaceChildren();
+
+  question[2].forEach((answer, index) => {
+    const button = document.createElement('button');
+    button.textContent = answer;
+    button.onclick = () => choose(index);
+    button.disabled = locked;
+    el('choices').appendChild(button);
+  });
+}
+
+async function choose(index) {
+  if (locked || myChoice !== null || !channel || !started) return;
+  if (!Number.isInteger(index) || index < 0 || index > 3) return;
+
+  myChoice = index;
+  locked = true;
+
+  [...el('choices').querySelectorAll('button')].forEach((button, i) => {
+    button.disabled = true;
+    button.style.opacity = i === index ? '1' : '.45';
+    button.style.border = i === index ? '1px solid #e879f9' : '1px solid #333';
+  });
+
+  await sendEvent('choice', {
+    name: me,
+    choice: index,
+    qi
+  });
+
+  if (otherChoice === null) {
+    el('wait').textContent = '⏳ Waiting for your person to answer...';
+  } else {
+    reveal();
+  }
+}
+
+function reveal() {
+  if (myChoice === null || otherChoice === null) return;
+
+  showOnly('reveal');
+
+  const question = qs[qi];
+  const same = myChoice === otherChoice;
+
+  el('answers').replaceChildren();
+
+  function makeAnswerCard(label, answer, matching) {
+    const card = document.createElement('div');
+    card.className = 'answer' + (matching ? ' same' : '');
+
+    const tag = document.createElement('div');
+    tag.className = 'tag';
+    tag.textContent = label + (matching ? ' 💞 SAME ANSWER!' : '');
+
+    const content = document.createElement('div');
+    content.textContent = answer;
+
+    card.append(tag, content);
+    return card;
+  }
+
+  el('answers').append(
+    makeAnswerCard('YOU', question[2][myChoice], same),
+    makeAnswerCard(otherName.toUpperCase(), question[2][otherChoice], same)
+  );
+
+  const reaction = document.createElement('p');
+  reaction.textContent = same
+    ? '😂😂 You two actually think alike!'
+    : '😭 Different answers! Now argue about it lovingly.';
+  el('answers').appendChild(reaction);
+
+  el('nextBtn').disabled = !isHost;
+  el('nextBtn').textContent = isHost
+    ? (qi === qs.length - 1 ? 'Finish our quest ❤️' : 'Next question ➜')
+    : '⏳ Waiting for the host...';
+
+  el('nextStatus').textContent = isHost
+    ? 'You control when the next question begins.'
+    : 'Your person will start the next question.';
+}
+
+async function nextQuestion() {
+  if (!isHost || myChoice === null || otherChoice === null) return;
+
+  if (qi >= qs.length - 1) {
+    await sendEvent('finish', { name: me });
+    finishQuest();
+    return;
+  }
+
+  qi++;
+  myChoice = null;
+  otherChoice = null;
+  locked = false;
+
+  await sendEvent('next', { name: me, qi });
+  showQuestion();
+}
+
+function finishQuest() {
+  showOnly('reveal');
+
+  el('answers').replaceChildren();
+
+  const heading = document.createElement('h2');
+  heading.textContent = '🌌 Quest Complete!';
+
+  const first = document.createElement('p');
+  first.textContent = 'You survived the questions, chaos, confessions and future planning.';
+
+  const second = document.createElement('p');
+  second.textContent = '❤️ Two people. One little universe.';
+
+  el('answers').append(heading, first, second);
+  el('nextStatus').textContent = 'Take a screenshot together to remember your answers.';
+
+  el('nextBtn').textContent = '💞 Play Again';
+  el('nextBtn').disabled = false;
+  el('nextBtn').onclick = () => location.reload();
+}
+</script>
+</body>
+</html>
+
